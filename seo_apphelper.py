@@ -1,12 +1,12 @@
 import os
 import threading
 from urllib.parse import urlparse
+from tkinter import messagebox, filedialog
 
 import customtkinter as ctk
 import requests
 from bs4 import BeautifulSoup
 from openai import OpenAI
-from tkinter import messagebox, filedialog
 
 
 ctk.set_appearance_mode("Dark")
@@ -28,20 +28,17 @@ class SEOApp(ctk.CTk):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
 
-        header = ctk.CTkLabel(
+        ctk.CTkLabel(
             self,
             text="دستیار بررسی و رشد سئوی فروشگاه",
             font=("Tahoma", 22, "bold"),
-        )
-        header.grid(row=0, column=0, padx=16, pady=(14, 8), sticky="e")
+        ).grid(row=0, column=0, padx=16, pady=(14, 8), sticky="e")
 
         body = ctk.CTkFrame(self)
         body.grid(row=1, column=0, padx=14, pady=8, sticky="nsew")
-        body.grid_columnconfigure(0, weight=1)
-        body.grid_columnconfigure(1, weight=1)
+        body.grid_columnconfigure((0, 1), weight=1)
         body.grid_rowconfigure(1, weight=1)
 
-        # API credentials and page URL
         settings = ctk.CTkFrame(body)
         settings.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
         settings.grid_columnconfigure(1, weight=1)
@@ -93,7 +90,6 @@ class SEOApp(ctk.CTk):
         )
         self.audit_button.grid(row=3, column=1, padx=6, pady=8, sticky="e")
 
-        # Product facts and visible audit
         left = ctk.CTkFrame(body)
         left.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
         left.grid_columnconfigure(0, weight=1)
@@ -113,15 +109,12 @@ class SEOApp(ctk.CTk):
         ).grid(row=2, column=0, padx=10, pady=4, sticky="e")
         self.facts_box = ctk.CTkTextbox(left, height=180, font=("Tahoma", 12))
         self.facts_box.grid(row=3, column=0, padx=10, pady=6, sticky="nsew")
-        ctk.CTkLabel(
-            left,
-            text="گزارش فنی صفحه",
-            font=("Tahoma", 15, "bold"),
-        ).grid(row=4, column=0, padx=10, pady=(10, 4), sticky="e")
+        ctk.CTkLabel(left, text="گزارش فنی صفحه", font=("Tahoma", 15, "bold")).grid(
+            row=4, column=0, padx=10, pady=(10, 4), sticky="e"
+        )
         self.audit_box = ctk.CTkTextbox(left, height=190, font=("Tahoma", 11))
         self.audit_box.grid(row=5, column=0, padx=10, pady=(4, 10), sticky="ew")
 
-        # AI plan and draft
         right = ctk.CTkFrame(body)
         right.grid(row=1, column=1, padx=10, pady=(0, 10), sticky="nsew")
         right.grid_columnconfigure(0, weight=1)
@@ -134,15 +127,12 @@ class SEOApp(ctk.CTk):
         actions = ctk.CTkFrame(right, fg_color="transparent")
         actions.grid(row=2, column=0, padx=10, pady=8, sticky="ew")
         self.generate_button = ctk.CTkButton(
-            actions,
-            text="تحلیل و نوشتن پیشنهادها",
-            command=self.generate_plan,
-            height=42,
+            actions, text="تحلیل و نوشتن پیشنهادها", command=self.generate_plan, height=42
         )
         self.generate_button.pack(side="right", padx=5)
-        ctk.CTkButton(
-            actions, text="ذخیره گزارش", command=self.save_report, height=42
-        ).pack(side="left", padx=5)
+        ctk.CTkButton(actions, text="ذخیره گزارش", command=self.save_report, height=42).pack(
+            side="left", padx=5
+        )
 
         self.status_label = ctk.CTkLabel(self, text="آماده", font=("Tahoma", 11))
         self.status_label.grid(row=2, column=0, padx=16, pady=(0, 10), sticky="e")
@@ -171,7 +161,9 @@ class SEOApp(ctk.CTk):
         url = self.url_entry.get().strip()
         parsed = urlparse(url)
         if parsed.scheme not in ("http", "https") or not parsed.netloc:
-            messagebox.showerror("لینک نامعتبر", "لطفاً لینک کامل صفحه با http یا https وارد کنید.")
+            messagebox.showerror(
+                "لینک نامعتبر", "لطفاً لینک کامل صفحه با http یا https وارد کنید."
+            )
             return
         self.audit_button.configure(state="disabled")
         self.status_label.configure(text="در حال دریافت و بررسی صفحه...")
@@ -187,7 +179,6 @@ class SEOApp(ctk.CTk):
             response.raise_for_status()
             response.encoding = response.apparent_encoding
             soup = BeautifulSoup(response.text, "html.parser")
-
             title = soup.title.get_text(" ", strip=True) if soup.title else ""
             description = self._meta(soup, "description")
             robots = self._meta(soup, "robots")
@@ -199,14 +190,15 @@ class SEOApp(ctk.CTk):
                 for tag in ("h1", "h2", "h3")
             }
             images = soup.find_all("img")
-            missing_alt = [img.get("src", "(بدون آدرس)") for img in images
-                           if not img.get("alt", "").strip()]
-
+            missing_alt = [
+                img.get("src", "(بدون آدرس)")
+                for img in images
+                if not img.get("alt", "").strip()
+            ]
             for node in soup(["script", "style", "noscript", "svg"]):
                 node.decompose()
             root = soup.find("main") or soup.find("article") or soup.body or soup
             text = " ".join(root.get_text(" ", strip=True).split())[:10000]
-
             data = {
                 "url": url,
                 "title": title,
@@ -239,7 +231,9 @@ class SEOApp(ctk.CTk):
         else:
             positives.append(f"Title موجود است ({len(title)} کاراکتر).")
             if len(title) < 30 or len(title) > 65:
-                issues.append("طول Title را از نظر وضوح و نمایش مناسب بازبینی کنید؛ طول به‌تنهایی معیار رتبه نیست.")
+                issues.append(
+                    "طول Title را از نظر وضوح و نمایش مناسب بازبینی کنید؛ طول به‌تنهایی معیار رتبه نیست."
+                )
         if not desc:
             issues.append("Meta description پیدا نشد؛ خلاصه‌ای دقیق و ترغیب‌کننده بنویسید.")
         else:
@@ -259,9 +253,22 @@ class SEOApp(ctk.CTk):
         if data["robots"] and "noindex" in data["robots"].lower():
             issues.append("متای robots شامل noindex است؛ اگر عمدی نیست، ایندکس‌پذیری را بررسی کنید.")
         if words < 100:
-            issues.append(f"فقط حدود {words} واژهٔ قابل‌استخراج پیدا شد؛ بررسی کنید محتوای اصلی در HTML موجود باشد.")
+            issues.append(
+                f"فقط حدود {words} واژهٔ قابل‌استخراج پیدا شد؛ بررسی کنید محتوای اصلی در HTML موجود باشد."
+            )
         else:
             positives.append(f"حدود {words} واژه متن قابل‌استخراج وجود دارد.")
+
+        positive_lines = (
+            [f"✓ {item}" for item in positives]
+            if positives
+            else ["موردی تشخیص داده نشد."]
+        )
+        issue_lines = (
+            [f"• {item}" for item in issues]
+            if issues
+            else ["مورد مهمی در بررسی اولیه تشخیص داده نشد."]
+        )
 
         lines = [
             "گزارش فنی اولیه (نه جایگزین Search Console یا بررسی رتبه)",
@@ -273,13 +280,14 @@ class SEOApp(ctk.CTk):
             f"Canonical: {data['canonical'] or 'پیدا نشد'} | Robots: {data['robots'] or 'مشخص نشده'}",
             "",
             "موارد مناسب:",
-            *(f"✓ {item}" for item in positives) if positives else ["موردی تشخیص داده نشد."],
-            "",
-            "موارد قابل بررسی:",
-            *(f"• {item}" for item in issues) if issues else ["مورد مهمی در بررسی اولیه تشخیص داده نشد."],
+        ]
+        lines.extend(positive_lines)
+        lines.extend(["", "موارد قابل بررسی:"])
+        lines.extend(issue_lines)
+        lines.extend([
             "",
             "این برنامه به آمار سرچ کنسول، رتبه، سرعت واقعی، لینک‌های ورودی یا صفحات رقبا دسترسی ندارد.",
-        ]
+        ])
         return "\n".join(lines)
 
     def _show_audit(self, data):
@@ -385,10 +393,12 @@ Meta فعلی: {page['description']}
 
     def save_report(self):
         content = "\n\n".join(
-            value for value in (
+            value
+            for value in (
                 self.audit_box.get("1.0", "end").strip(),
                 self.result_box.get("1.0", "end").strip(),
-            ) if value
+            )
+            if value
         )
         if not content:
             messagebox.showinfo("گزارش خالی است", "ابتدا صفحه را بررسی کنید.")
